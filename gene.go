@@ -105,7 +105,7 @@ func getAlpha(generation []*strategy) *strategy {
 // getRunt returns the worst-performing strategy of the generation.
 func getRunt(generation []*strategy) *strategy {
 	rankGeneration(generation)
-	return generation[len(generation)]
+	return generation[len(generation)-1]
 }
 
 // rankGeneration sorts the strategies into decending order of score.
