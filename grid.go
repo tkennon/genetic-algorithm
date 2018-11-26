@@ -48,6 +48,16 @@ func newGrid() *grid {
 	return g
 }
 
+func (g *grid) getLeftoverRubbish() int {
+	count := 0
+	for _, c := range g.cells {
+		if c == rubbish {
+			count++
+		}
+	}
+	return count
+}
+
 func positionToIndex(x, y int) int {
 	return x + y*(gridSize+2)
 }
@@ -91,56 +101,56 @@ func (g *grid) getSituation() int {
 
 // moveUp attempts to move Robbie upwards one cell. It returns the change in
 // score as a result of this move.
-func (g *grid) moveUp() int {
+func (g *grid) moveUp(s *strategy) {
 	if g.y == gridSize {
-		return bumpPenalty
+		s.bump()
+	} else {
+		g.y++
 	}
-	g.y++
-	return 0
 }
 
 // moveRight attempts to move Robbie right one cell. It returns the change in
 // score as a result of this move.
-func (g *grid) moveRight() int {
+func (g *grid) moveRight(s *strategy) {
 	if g.x == gridSize {
-		return bumpPenalty
+		s.bump()
+	} else {
+		g.x++
 	}
-	g.x++
-	return 0
 }
 
 // moveDown attempts to move Robbie downwards one cell. It returns the change in
 // score as a result of this move.
-func (g *grid) moveDown() int {
+func (g *grid) moveDown(s *strategy) {
 	if g.y == 1 {
-		return bumpPenalty
+		s.bump()
+	} else {
+		g.y--
 	}
-	g.y--
-	return 0
 }
 
 // moveLeft attempts to move Robbie left one cell. It returns the change in
 // score as a result of this move.
-func (g *grid) moveLeft() int {
+func (g *grid) moveLeft(s *strategy) {
 	if g.x == 1 {
-		return bumpPenalty
+		s.bump()
+	} else {
+		g.x--
 	}
-	g.x--
-	return 0
 }
 
 // moveRandom attempts to move Robbie in a random direction. It returns the
 // change in score as a result of this move.
-func (g *grid) moveRandom() int {
+func (g *grid) moveRandom(s *strategy) {
 	switch rand.Intn(4) {
 	case 0:
-		return g.moveUp()
+		g.moveUp(s)
 	case 1:
-		return g.moveRight()
+		g.moveRight(s)
 	case 2:
-		return g.moveDown()
+		g.moveDown(s)
 	case 3:
-		return g.moveLeft()
+		g.moveLeft(s)
 	default:
 		panic("out of range")
 	}
@@ -148,10 +158,11 @@ func (g *grid) moveRandom() int {
 
 // pickUp attempts to pick up rubbish from Robbie's current position in the
 // grid. It returns the change in score as a result of this move.
-func (g *grid) pickUp() int {
+func (g *grid) pickUp(s *strategy) {
 	if g.isCurrentCell(rubbish) {
 		g.setCurrentCell(empty)
-		return pickUpReward
+		s.pickUp()
+	} else {
+		s.falsePickUp()
 	}
-	return pickUpPenalty
 }

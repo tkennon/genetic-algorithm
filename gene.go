@@ -24,12 +24,35 @@ var genomeSize = int(math.Pow(3, 5))
 type strategy struct {
 	// Robbie's instruction set for this game.
 	genome []gene
-	// Accumulative score over all games.
+	// Cumulative score over all games.
 	score int
+	// Cumulative successful pickups over all games.
+	pickUps int
+	// Cumulative failed pickups over all games.
+	falsePickUps int
+	// Cumlative wall bumps over all games.
+	bumps int
+	// Cumulative leftover rubbish.
+	leftovers int
 }
 
 func (s *strategy) getMove(situation int) gene {
 	return s.genome[situation]
+}
+
+func (s *strategy) pickUp() {
+	s.score += pickUpReward
+	s.pickUps++
+}
+
+func (s *strategy) falsePickUp() {
+	s.score += pickUpPenalty
+	s.falsePickUps++
+}
+
+func (s *strategy) bump() {
+	s.score += bumpPenalty
+	s.bumps++
 }
 
 func getRandomGene() gene {
@@ -69,8 +92,12 @@ func createChild(parents ...*strategy) *strategy {
 		}
 	}
 	return &strategy{
-		genome: genome,
-		score:  0,
+		genome:       genome,
+		score:        0,
+		pickUps:      0,
+		falsePickUps: 0,
+		bumps:        0,
+		leftovers:    0,
 	}
 }
 

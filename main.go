@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
+
+	chart "github.com/wcharczuk/go-chart"
 )
 
 // Parameters of the game.
@@ -28,57 +32,80 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
+type statistics struct {
+	s             strategy
+	missedPickUps int
+}
+
 func evolve() {
 	currentGen := createNextGeneration(nil)
+	alphas := make([]statistics, 0)
+	runts := make([]statistics, 0)
 	for i := 0; i < maxGenerations; i++ {
-		// log.Println(currentGen)
-		// var wg sync.WaitGroup
+		var wg sync.WaitGroup
 		for _, s := range currentGen {
-			// wg.Add(1)
-			// log.Println(s)
-			// go func(s *strategy) {
-			// defer wg.Done()
-			for j := 0; j < maxGames; j++ {
-				g := newGrid()
-				for k := 0; k < maxMoves; k++ {
-					// g.printGrid()
-					// log.Println("before:", g.currentPosition())
-					switch s.getMove(g.getSituation()) {
-					case doNothing:
-						// log.Println("doing nothing")
-					case moveUp:
-						// log.Println("moving up")
-						s.score += g.moveUp()
-					case moveRight:
-						// log.Println("moving right")
-						s.score += g.moveRight()
-					case moveDown:
-						// log.Println("moving down")
-						s.score += g.moveDown()
-					case moveLeft:
-						// log.Println("moving left")
-						s.score += g.moveLeft()
-					case moveRandom:
-						// log.Println("moving randomly")
-						s.score += g.moveRandom()
-					case pickUpRubbish:
-						// log.Println("picking up rubbish")
-						s.score += g.pickUp()
+			wg.Add(1)
+			go func(s *strategy) {
+				defer wg.Done()
+				for j := 0; j < maxGames; j++ {
+					g := newGrid()
+					for k := 0; k < maxMoves; k++ {
+						switch s.getMove(g.getSituation()) {
+						case doNothing:
+						case moveUp:
+							g.moveUp(s)
+						case moveRight:
+							g.moveRight(s)
+						case moveDown:
+							g.moveDown(s)
+						case moveLeft:
+							g.moveLeft(s)
+						case moveRandom:
+							g.moveRandom(s)
+						case pickUpRubbish:
+							g.pickUp(s)
+						}
 					}
-					// log.Println("after:", g.currentPosition())
-					// log.Println(s.score)
+					s.leftovers += g.getLeftoverRubbish()
 				}
-			}
-			// }(s)
+			}(s)
 		}
-		// wg.Wait()
+		wg.Wait()
 		alpha := getAlpha(currentGen)
-		// log.Println(alpha)
 		runt := getRunt(currentGen)
-		// log.Println(runt)
+		alphas = append(alphas, statistics{s: *alpha})
+		runts = append(runts, statistics{s: *runt})
 		log.Printf("Finished generation %d: alpha %d, runt %d\n", i, alpha.score, runt.score)
 		currentGen = createNextGeneration(currentGen)
 	}
+
+	alphaScores := make([]float64, len(alphas))
+	xaxis := make([]float64, len(alphas))
+	for i, a := range alphas {
+		xaxis[i] = float64(i)
+		alphaScores[i] = float64(a.s.score)
+	}
+	graph := chart.Chart{
+		Series: []chart.Series{
+			chart.ContinuousSeries{
+				XValues: xaxis,
+				YValues: alphaScores,
+			},
+			// chart.ContinuousSeries{
+			// 	XValues: xaxis,
+			// 	yValues:
+			// }
+		},
+	}
+
+	buffer := bytes.NewBuffer([]byte{})
+	err := graph.Render(chart.PNG, buffer)
+	f, err := os.Create("chart.png")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	f.Write(buffer.Bytes())
 }
 
 func parseFlags() error {
@@ -91,7 +118,7 @@ func parseFlags() error {
 	flag.IntVar(&gridSize, "grid-size", 10, "the size of one side of the square gird (not including walls)")
 	flag.IntVar(&generationSize, "generation-size", 200, "the numbr of strategies per generation")
 	flag.IntVar(&numberOfParents, "parents", 2, "the number of parents required to create an offspring")
-	flag.IntVar(&maxGenerations, "max-generations", 1000, "the maximum number of generations to evolve over")
+	flag.IntVar(&maxGenerations, "max-generations", 500, "the maximum number of generations to evolve over")
 	flag.IntVar(&maxGames, "max-games", 100, "the maximum number of games per strategy")
 	flag.Parse()
 	if chanceOfRubbish < 0.0 || chanceOfRubbish > 1.0 {
