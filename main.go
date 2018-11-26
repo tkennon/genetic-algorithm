@@ -346,7 +346,7 @@ func evolve() {
 func parseFlags() error {
 	flag.IntVar(&pickUpReward, "pick-up-reward", 10, "the reward for picking up rubbish")
 	flag.IntVar(&pickUpPenalty, "pick-up-penalty", -5, "the penalty for picking up rubbish where there is none")
-	flag.IntVar(&bumpPenalty, "wall-bump=penalty", -1, "the penalty for bumping into a wall")
+	flag.IntVar(&bumpPenalty, "wall-bump-penalty", -1, "the penalty for bumping into a wall")
 	flag.IntVar(&maxMoves, "max-moves", 500, "the number of moves in a game")
 	flag.Float64Var(&chanceOfRubbish, "chance-of-rubbish", 0.25, "the chance of any given cell being initialised with rubbish")
 	flag.Float64Var(&chanceOfMutation, "chance-of-mutation", 0.01, "the chance of genetic mutation occurring for a given gene")
