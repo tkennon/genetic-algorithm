@@ -13,37 +13,60 @@ import (
 // Stats is a struct that tracks the statistics of one Robbie out of every
 // generation.
 type Stats struct {
-	scores        []float64
-	pickUps       []float64
-	falsePickUps  []float64
-	bumps         []float64
-	missedRubbish []float64
-	totalRubbish  []float64
-	numGenes      map[robbie.Gene][]float64
+	totalMoves  int
+	reward      int
+	minScore    int
+	scores      []float64
+	achievement []float64
+	cleanliness []float64
+	clumsiness  []float64
+	scatiness   []float64
+	// pickUps       []float64
+	// falsePickUps []float64
+	// bumps        []float64
+	// missedRubbish []float64
+	// totalRubbish  []float64
+	numGenes map[robbie.Gene][]float64
 }
 
 // New returns a new and empty Stats object.
-func New() *Stats {
+func New(totalMoves int, pickUpReward, pickUpPenalty, bumpPenalty int) *Stats {
+	min := pickUpPenalty
+	if bumpPenalty > pickUpPenalty {
+		min = bumpPenalty
+	}
 	return &Stats{
-		scores:        make([]float64, 0),
-		pickUps:       make([]float64, 0),
-		falsePickUps:  make([]float64, 0),
-		bumps:         make([]float64, 0),
-		missedRubbish: make([]float64, 0),
-		totalRubbish:  make([]float64, 0),
-		numGenes:      make(map[robbie.Gene][]float64, 0),
+		totalMoves:  totalMoves,
+		reward:      pickUpReward,
+		minScore:    min * totalMoves,
+		scores:      make([]float64, 0),
+		cleanliness: make([]float64, 0),
+		clumsiness:  make([]float64, 0),
+		scatiness:   make([]float64, 0),
+		achievement: make([]float64, 0),
+		// pickUps:       make([]float64, 0),
+		// falsePickUps: make([]float64, 0),
+		// bumps:        make([]float64, 0),
+		// missedRubbish: make([]float64, 0),
+		// totalRubbish:  make([]float64, 0),
+		numGenes: make(map[robbie.Gene][]float64, 0),
 	}
 }
 
 // Add adds the given Robbie to the statistics. It is assumed only one Robbie
 // from each generation will be added to a single Stats object.
 func (s *Stats) Add(r *robbie.Robbie) {
+	scoreRange := float64(s.reward*r.TotalRubbish) + float64(s.minScore)
 	s.scores = append(s.scores, float64(r.Score))
-	s.pickUps = append(s.pickUps, float64(r.PickUps))
-	s.falsePickUps = append(s.falsePickUps, float64(r.FalsePickUps))
-	s.bumps = append(s.bumps, float64(r.Bumps))
-	s.missedRubbish = append(s.missedRubbish, float64(r.MissedRubbish))
-	s.totalRubbish = append(s.totalRubbish, float64(r.TotalRubbish))
+	s.achievement = append(s.achievement, 100.0*((float64(r.Score)+float64(s.minScore))/scoreRange))
+	s.cleanliness = append(s.cleanliness, 100.0*float64(r.PickUps)/float64(r.TotalRubbish))
+	s.clumsiness = append(s.clumsiness, 100.0*float64(r.Bumps)/float64(s.totalMoves))
+	s.scatiness = append(s.scatiness, 100.0*float64(r.FalsePickUps)/float64(s.totalMoves))
+	// s.pickUps = append(s.pickUps, float64(r.PickUps))
+	// s.falsePickUps = append(s.falsePickUps, float64(r.FalsePickUps))
+	// s.bumps = append(s.bumps, float64(r.Bumps))
+	// s.missedRubbish = append(s.missedRubbish, float64(r.MissedRubbish))
+	// s.totalRubbish = append(s.totalRubbish, float64(r.TotalRubbish))
 	counters := make(map[robbie.Gene]float64)
 	for _, g := range r.Genome {
 		if _, ok := counters[g]; !ok {
@@ -58,40 +81,40 @@ func (s *Stats) Add(r *robbie.Robbie) {
 }
 
 // GetScoreChart saves the Stats score chart to the filename.
-func (s *Stats) GetScoreChart(filename string) error {
-	xaxis := seq.Range(0.0, float64(len(s.scores)-1))
-	score := chart.Chart{
-		XAxis: chart.XAxis{
-			Style: chart.StyleShow(),
-		},
-		YAxis: chart.YAxis{
-			Style: chart.StyleShow(),
-		},
-		Background: chart.Style{
-			Padding: chart.Box{
-				Top:  20,
-				Left: 120,
-			},
-		},
-		Series: []chart.Series{
-			chart.ContinuousSeries{
-				Name:    "score",
-				XValues: xaxis,
-				YValues: s.scores,
-			},
-			chart.ContinuousSeries{
-				Name:    "missed-rubbish",
-				XValues: xaxis,
-				YValues: s.missedRubbish,
-			},
-		},
-	}
-	score.Elements = []chart.Renderable{
-		chart.LegendLeft(&score),
-	}
+// func (s *Stats) GetScoreChart(filename string) error {
+// 	xaxis := seq.Range(0.0, float64(len(s.scores)-1))
+// 	score := chart.Chart{
+// 		XAxis: chart.XAxis{
+// 			Style: chart.StyleShow(),
+// 		},
+// 		YAxis: chart.YAxis{
+// 			Style: chart.StyleShow(),
+// 		},
+// 		Background: chart.Style{
+// 			Padding: chart.Box{
+// 				Top:  20,
+// 				Left: 120,
+// 			},
+// 		},
+// 		Series: []chart.Series{
+// 			chart.ContinuousSeries{
+// 				Name:    "score",
+// 				XValues: xaxis,
+// 				YValues: s.scores,
+// 			},
+// 			chart.ContinuousSeries{
+// 				Name:    "missed-rubbish",
+// 				XValues: xaxis,
+// 				YValues: s.missedRubbish,
+// 			},
+// 		},
+// 	}
+// 	score.Elements = []chart.Renderable{
+// 		chart.LegendLeft(&score),
+// 	}
 
-	return writeChart(filename, score)
-}
+// 	return writeChart(filename, score)
+// }
 
 // GetGenomeChart saves the Stats genome chart to the filename.
 func (s *Stats) GetGenomeChart(filename string) error {
@@ -224,30 +247,50 @@ func (s *Stats) GetCountersChart(filename string) error {
 		},
 		Series: []chart.Series{
 			chart.ContinuousSeries{
-				Name:    "pick-ups",
+				Name:    "cleanliness",
 				XValues: xaxis,
-				YValues: s.pickUps,
+				YValues: s.cleanliness,
 			},
 			chart.ContinuousSeries{
-				Name:    "false-pick-ups",
+				Name:    "clumsiness",
 				XValues: xaxis,
-				YValues: s.falsePickUps,
+				YValues: s.clumsiness,
 			},
 			chart.ContinuousSeries{
-				Name:    "bumps",
+				Name:    "scatiness",
 				XValues: xaxis,
-				YValues: s.bumps,
+				YValues: s.scatiness,
 			},
 			chart.ContinuousSeries{
-				Name:    "missed-rubbish",
+				Name:    "achievement",
 				XValues: xaxis,
-				YValues: s.missedRubbish,
+				YValues: s.achievement,
 			},
-			chart.ContinuousSeries{
-				Name:    "total-rubbish",
-				XValues: xaxis,
-				YValues: s.totalRubbish,
-			},
+			// chart.ContinuousSeries{
+			// 	Name:    "pick-ups",
+			// 	XValues: xaxis,
+			// 	YValues: s.pickUps,
+			// },
+			// chart.ContinuousSeries{
+			// 	Name:    "false-pick-ups",
+			// 	XValues: xaxis,
+			// 	YValues: s.falsePickUps,
+			// },
+			// chart.ContinuousSeries{
+			// 	Name:    "bumps",
+			// 	XValues: xaxis,
+			// 	YValues: s.bumps,
+			// },
+			// chart.ContinuousSeries{
+			// 	Name:    "missed-rubbish",
+			// 	XValues: xaxis,
+			// 	YValues: s.missedRubbish,
+			// },
+			// chart.ContinuousSeries{
+			// 	Name:    "total-rubbish",
+			// 	XValues: xaxis,
+			// 	YValues: s.totalRubbish,
+			// },
 		},
 	}
 	counters.Elements = []chart.Renderable{

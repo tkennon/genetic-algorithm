@@ -37,8 +37,8 @@ func init() {
 
 func evolve() {
 	gen := robbie.FirstGeneration(generationSize, int(math.Pow(3, 5)))
-	alphas := stats.New()
-	runts := stats.New()
+	alphas := stats.New(maxMoves*maxGames, pickUpReward, pickUpPenalty, bumpPenalty)
+	runts := stats.New(maxMoves*maxGames, pickUpReward, pickUpPenalty, bumpPenalty)
 	for i := 0; i < maxGenerations; i++ {
 		var wg sync.WaitGroup
 		for _, r := range gen.Robbies {
@@ -60,18 +60,18 @@ func evolve() {
 		gen = gen.NextGeneration(numberOfParents, chanceOfMutation)
 	}
 
-	if err := alphas.GetScoreChart(fmt.Sprintf("%s-alpha-scores.png", outputFile)); err != nil {
-		log.Println(err)
-	}
+	// if err := alphas.GetScoreChart(fmt.Sprintf("%s-alpha-scores.png", outputFile)); err != nil {
+	// 	log.Println(err)
+	// }
 	if err := alphas.GetCountersChart(fmt.Sprintf("%s-alpha-counters.png", outputFile)); err != nil {
 		log.Println(err)
 	}
 	if err := alphas.GetGenomeChart(fmt.Sprintf("%s-alpha-genome.png", outputFile)); err != nil {
 		log.Println(err)
 	}
-	if err := runts.GetScoreChart(fmt.Sprintf("%s-runt-scores.png", outputFile)); err != nil {
-		log.Println(err)
-	}
+	// if err := runts.GetScoreChart(fmt.Sprintf("%s-runt-scores.png", outputFile)); err != nil {
+	// 	log.Println(err)
+	// }
 	if err := runts.GetCountersChart(fmt.Sprintf("%s-runt-counters.png", outputFile)); err != nil {
 		log.Println(err)
 	}
@@ -81,8 +81,8 @@ func evolve() {
 }
 
 func parseFlags() error {
-	flag.IntVar(&pickUpReward, "pick-up-reward", 10, "the reward for picking up rubbish")
-	flag.IntVar(&pickUpPenalty, "pick-up-penalty", 5, "the penalty for picking up rubbish where there is none")
+	flag.IntVar(&pickUpReward, "pick-up-reward", 2, "the reward for picking up rubbish")
+	flag.IntVar(&pickUpPenalty, "pick-up-penalty", 1, "the penalty for picking up rubbish where there is none")
 	flag.IntVar(&bumpPenalty, "wall-bump-penalty", 1, "the penalty for bumping into a wall")
 	flag.IntVar(&maxMoves, "max-moves", 500, "the number of moves in a game")
 	flag.Float64Var(&chanceOfRubbish, "chance-of-rubbish", 0.25, "the chance of any given cell being initialised with rubbish")
@@ -90,7 +90,7 @@ func parseFlags() error {
 	flag.IntVar(&gridSize, "grid-size", 10, "the size of one side of the square gird (not including walls)")
 	flag.IntVar(&generationSize, "generation-size", 200, "the number of Robbies per generation")
 	flag.IntVar(&numberOfParents, "parents", 2, "the number of parents required to create an offspring")
-	flag.IntVar(&maxGenerations, "max-generations", 400, "the maximum number of generations to evolve over")
+	flag.IntVar(&maxGenerations, "max-generations", 300, "the maximum number of generations to evolve over")
 	flag.IntVar(&maxGames, "max-games", 100, "the maximum number of games each Robbie will play")
 	flag.StringVar(&outputFile, "output-file", "chart", "the name of the resulting file (no extension)")
 	flag.Parse()
