@@ -2,8 +2,6 @@ package game
 
 import (
 	"math/rand"
-
-	"me/ga-robbie/robbie"
 )
 
 type cellState int
@@ -14,9 +12,9 @@ const (
 	wall
 )
 
-// Game is an object that will test how good Robbie is.
+// Game is an object that will test how good a player is.
 type Game interface {
-	Play(numTurns int, r *robbie.Robbie)
+	Play(numTurns int, p *Player)
 }
 
 type grid struct {
@@ -24,20 +22,20 @@ type grid struct {
 	cells []cellState
 	// The length of one side of the square grid (including both walls).
 	size int
-	// Robbie's x position in the grid (zero is left-most).
+	// The Player's x position in the grid (zero is left-most).
 	x int
-	// Robbie's y position in the grid (zero is bottom-most).
+	// The Player's y position in the grid (zero is bottom-most).
 	y int
-	// How much Robbie is rewarded for successfully picking up rubbish.
+	// How much the Player is rewarded for successfully picking up rubbish.
 	pickUpReward int
-	// How much Robbie is punished for mistakenly trying to pick up rubbish.
+	// How much the Player is punished for mistakenly trying to pick up rubbish.
 	pickUpPenalty int
-	// How much Robbie is punished for bumping into the wall of the grid.
+	// How much the Player is punished for bumping into the wall of the grid.
 	bumpPenalty int
 }
 
-// New returns a new game ready for Robbie to play. The game constists of a
-// size*size grid with the cells randomly populated with rubbish. Robbie is
+// New returns a new game ready for the Player to play. The game constists of a
+// size*size grid with the cells randomly populated with rubbish. The Player is
 // rewarded with pickUpReward every time it picks up rubbish in a cell,
 // punished with pickUpPenalty every time it tries to pick up rubbish in an
 // empty cell, and punsihed with bumpPenalty every time it bumps into the wall
@@ -70,40 +68,40 @@ func New(size int, chanceOfRubbish float64, pickUpReward, pickUpPenalty, bumpPen
 	return g
 }
 
-func (g *grid) Play(turns int, r *robbie.Robbie) {
-	r.Total(g.countRubbish())
+func (g *grid) Play(turns int, p *Player) {
+	p.TotalRubbish += g.countRubbish()
 	for i := 0; i < turns; i++ {
-		switch r.GetGene(g.getSituation()) {
-		case robbie.DoNothing:
-		case robbie.MoveUp:
+		switch p.Mover.NextMove(g.GetCurrentPosition()) {
+		case DoNothing:
+		case MoveUp:
 			if !g.moveUp() {
-				r.Bump(g.bumpPenalty)
+				p.Bump(g.bumpPenalty)
 			}
-		case robbie.MoveRight:
+		case MoveRight:
 			if !g.moveRight() {
-				r.Bump(g.bumpPenalty)
+				p.Bump(g.bumpPenalty)
 			}
-		case robbie.MoveDown:
+		case MoveDown:
 			if !g.moveDown() {
-				r.Bump(g.bumpPenalty)
+				p.Bump(g.bumpPenalty)
 			}
-		case robbie.MoveLeft:
+		case MoveLeft:
 			if !g.moveLeft() {
-				r.Bump(g.bumpPenalty)
+				p.Bump(g.bumpPenalty)
 			}
-		case robbie.MoveRandom:
+		case MoveRandom:
 			if !g.moveRandom() {
-				r.Bump(g.bumpPenalty)
+				p.Bump(g.bumpPenalty)
 			}
-		case robbie.PickUpRubbish:
+		case PickUpRubbish:
 			if g.pickUp() {
-				r.PickUp(g.pickUpReward)
+				p.PickUp(g.pickUpReward)
 			} else {
-				r.FalsePickUp(g.pickUpPenalty)
+				p.FalsePickUp(g.pickUpPenalty)
 			}
 		}
 	}
-	r.Missed(g.countRubbish())
+	p.MissedRubbish += g.countRubbish()
 }
 
 func (g *grid) positionToIndex(x, y int) int {
@@ -130,13 +128,24 @@ func (g *grid) setCurrentCell(val cellState) {
 	g.setCell(g.x, g.y, val)
 }
 
-func (g *grid) getSituation() int {
-	current := int(g.getCell(g.x, g.y))
-	above := int(g.getCell(g.x, g.y+1))
-	right := int(g.getCell(g.x+1, g.y))
-	below := int(g.getCell(g.x, g.y-1))
-	left := int(g.getCell(g.x-1, g.y))
-	return current + 3*above + 3*3*right + 3*3*3*below + 3*3*3*3*left
+// Situation encodes the situation that player is in on a given turn in the game.
+// For example: current empty, above wall, left rubbish etc.
+type Position struct {
+	Current cellState
+	Above   cellState
+	Right   cellState
+	Below   cellState
+	Left    cellState
+}
+
+func (g *grid) GetCurrentPosition() Position {
+	return Position{
+		Current: g.getCell(g.x, g.y),
+		Above:   g.getCell(g.x, g.y+1),
+		Right:   g.getCell(g.x+1, g.y),
+		Below:   g.getCell(g.x, g.y-1),
+		Left:    g.getCell(g.x-1, g.y),
+	}
 }
 
 func (g *grid) moveUp() bool {
